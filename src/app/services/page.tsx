@@ -47,13 +47,12 @@ const services = [
   {
     title: "Cabinet & Built-In Refinishing",
     description:
-      "Transform dated kitchens, bathroom vanities, and built-ins without the cost of a full remodel. Our cabinet refinishing delivers dramatic results at a fraction of the price — premium lacquer and conversion varnish finishes that look and feel factory-fresh. This is our specialty, and our gallery proves it.",
+      "Transform dated kitchens, bathroom vanities, and built-ins without the cost of a full remodel. Every cabinet is finished by hand: rolled, never sprayed, with a technique Martin has refined over 35 years. The finish lays down smoother than spray, with no overspray on your counters, no dust cloud, and no plastic sheeting over half your home. This is our specialty, and our gallery proves it.",
     includes: [
       "Kitchen cabinets, bathroom vanities, and built-ins",
-      "Premium lacquer and conversion varnish finishes",
+      "Hand-rolled, furniture-grade finish that outperforms spray",
       "Custom color matching and multi-tone options",
       "Hardware removal and reinstallation",
-      "Dust-free spraying for a flawless factory finish",
     ],
     cta: "The transformation will exceed your expectations.",
     bg: "bg-cream",

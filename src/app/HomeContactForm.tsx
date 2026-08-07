@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import PhotoUpload from "@/components/PhotoUpload";
+import EstimateResult, { CustomerEstimate } from "@/components/EstimateResult";
 
 const SERVICE_OPTIONS = [
   "Interior Painting",
@@ -16,6 +17,7 @@ export default function HomeContactForm() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
+  const [estimate, setEstimate] = useState<CustomerEstimate | null>(null);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -38,6 +40,8 @@ export default function HomeContactForm() {
         body: submitData,
       });
       if (!res.ok) throw new Error("Something went wrong. Please try again.");
+      const json = await res.json().catch(() => null);
+      setEstimate(json?.estimate ?? null);
       setIsSubmitted(true);
     } catch (err) {
       setError(
@@ -62,6 +66,7 @@ export default function HomeContactForm() {
           We&apos;ve received your request. A member of our team will reach out
           within 24 hours to schedule your free consultation.
         </p>
+        {estimate && <EstimateResult estimate={estimate} variant="dark" />}
       </div>
     );
   }

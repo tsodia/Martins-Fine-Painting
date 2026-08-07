@@ -1,0 +1,16 @@
+{
+  "locationQuery": "Denver Metro Area, Colorado, USA",
+  "searchTerms": [
+    "interior designer",
+    "kitchen remodeler",
+    "kitchen and bath design",
+    "general contractor residential remodel",
+    "home stager",
+    "custom cabinet maker"
+  ],
+  "maxPlacesPerSearch": 60,
+  "minReviews": 3,
+  "draftTopN": 20,
+  "scoringModel": "claude-haiku-4-5-20251001",
+  "draftModel": "claude-sonnet-4-6"
+}

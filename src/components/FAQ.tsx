@@ -20,6 +20,11 @@ const faqs = [
       "35+ years of experience, an obsessive attention to detail, and a guarantee that Martin won't leave until the job is perfect. He uses only premium materials, preps like a surgeon, and personally handles every project from start to finish. This isn't a side hustle — it's a legacy.",
   },
   {
+    question: "Do you spray cabinets?",
+    answer:
+      "No, and that's deliberate. Martin hand-rolls every cabinet and built-in with a technique refined over 35 years. The finish lays down smoother than spray, with no overspray on your counters, no dust cloud, and no plastic sheeting over half your house. Look closely at the gallery photos: that glass-smooth finish is done entirely by hand.",
+  },
+  {
     question: "What paint brands do you use?",
     answer:
       "We use top-tier products from Benjamin Moore, Sherwin-Williams (Duration and Emerald lines), and specialty finishes as needed. We'll recommend the best product for your specific project — no cheap shortcuts.",

@@ -39,3 +39,4 @@ Gemini_Generated_Image_*.png
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+leads/output/

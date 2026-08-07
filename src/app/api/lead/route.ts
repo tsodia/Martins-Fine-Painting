@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import nodemailer from "nodemailer";
+import {
+  Estimate,
+  generateEstimate,
+  showEstimateToCustomer,
+} from "@/lib/estimate";
+
+// Claude vision estimate can take 10-20s with photos; default serverless
+// timeout is too tight for lead capture + estimate + email in one request.
+export const maxDuration = 60;
 
 interface LeadData {
   name: string;
@@ -66,7 +75,7 @@ async function validateAndExtractFiles(
   return files;
 }
 
-async function appendToGoogleSheet(data: LeadData) {
+async function appendToGoogleSheet(data: LeadData, estimate: Estimate | null) {
   const privateKey = process.env.GOOGLE_SHEETS_PRIVATE_KEY;
   const clientEmail = process.env.GOOGLE_SHEETS_CLIENT_EMAIL;
   const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
@@ -92,7 +101,7 @@ async function appendToGoogleSheet(data: LeadData) {
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range: "Sheet1!A:I",
+    range: "Sheet1!A:J",
     valueInputOption: "USER_ENTERED",
     requestBody: {
       values: [
@@ -106,13 +115,20 @@ async function appendToGoogleSheet(data: LeadData) {
           data.projectDescription || "",
           data.howFoundUs || "",
           data.sourcePage || "",
+          estimate
+            ? `AI ballpark: $${estimate.ballparkLow}-$${estimate.ballparkHigh} (${estimate.confidence}) — ${estimate.scopeSummary}`
+            : "",
         ],
       ],
     },
   });
 }
 
-async function sendEmailNotification(data: LeadData, files: ValidatedFile[] = []) {
+async function sendEmailNotification(
+  data: LeadData,
+  files: ValidatedFile[] = [],
+  estimate: Estimate | null = null
+) {
   const apiKey = process.env.EMAIL_SERVICE_API_KEY;
   const fromAddress = process.env.EMAIL_FROM_ADDRESS;
   const toAddresses = process.env.EMAIL_TO_ADDRESSES || "msodia@live.com,tyler.sodia@outlook.com";
@@ -140,6 +156,17 @@ async function sendEmailNotification(data: LeadData, files: ValidatedFile[] = []
     ? `<tr><td style="padding: 8px 0; font-weight: bold; color: #1a2744;">Photos:</td><td style="padding: 8px 0;">${files.length} photo(s) attached</td></tr>`
     : "";
 
+  const estimateBlock = estimate
+    ? `
+      <div style="margin-top: 16px; padding: 16px; background: #ffffff; border-left: 4px solid #c9a84c;">
+        <p style="margin: 0 0 8px; font-weight: bold; color: #1a2744;">AI Preliminary Ballpark (internal triage — verify before quoting)</p>
+        <p style="margin: 0 0 6px; font-size: 20px; color: #1a2744;"><strong>$${estimate.ballparkLow.toLocaleString()} – $${estimate.ballparkHigh.toLocaleString()}</strong> <span style="font-size: 13px; color: #666;">(confidence: ${estimate.confidence})</span></p>
+        <p style="margin: 0 0 6px; color: #333;">${estimate.scopeSummary}</p>
+        <p style="margin: 0 0 6px; color: #666; font-size: 13px;">${estimate.conditionNotes}</p>
+        ${estimate.questions.length > 0 ? `<p style="margin: 8px 0 0; font-size: 13px; color: #1a2744;"><strong>Ask at consult:</strong> ${estimate.questions.join(" · ")}</p>` : ""}
+      </div>`
+    : "";
+
   const htmlBody = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background: #1a2744; padding: 24px; text-align: center;">
@@ -158,6 +185,7 @@ async function sendEmailNotification(data: LeadData, files: ValidatedFile[] = []
           <tr><td style="padding: 8px 0; font-weight: bold; color: #1a2744;">Source Page:</td><td style="padding: 8px 0;">${data.sourcePage || "Unknown"}</td></tr>
           <tr><td style="padding: 8px 0; font-weight: bold; color: #1a2744;">Submitted:</td><td style="padding: 8px 0;">${timestamp}</td></tr>
         </table>
+        ${estimateBlock}
       </div>
       <div style="background: #1a2744; padding: 16px; text-align: center;">
         <p style="color: #c9a84c; margin: 0; font-size: 13px;">Martin's Fine Painting — Lead Pipeline</p>
@@ -234,11 +262,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Generate the AI ballpark first (fails soft to null, never blocks the lead)
+    const estimate = await generateEstimate(data, files);
+
     // Run Google Sheet append and email in parallel
     // Files are only passed to email — NOT to Google Sheets
     const results = await Promise.allSettled([
-      appendToGoogleSheet(data),
-      sendEmailNotification(data, files),
+      appendToGoogleSheet(data, estimate),
+      sendEmailNotification(data, files, estimate),
     ]);
 
     // Log any failures but still return success to the user
@@ -249,7 +280,19 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({ success: true });
+    // Estimate is only exposed to the visitor once Martin has calibrated
+    // pricing anchors and ESTIMATE_SHOW_TO_CUSTOMER=true is set.
+    return NextResponse.json({
+      success: true,
+      estimate:
+        estimate && showEstimateToCustomer()
+          ? {
+              low: estimate.ballparkLow,
+              high: estimate.ballparkHigh,
+              summary: estimate.scopeSummary,
+            }
+          : null,
+    });
   } catch (error) {
     console.error("Lead API error:", error);
     return NextResponse.json(

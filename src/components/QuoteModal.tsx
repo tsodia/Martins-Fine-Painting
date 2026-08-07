@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, FormEvent } from "react";
 import PhotoUpload from "@/components/PhotoUpload";
+import EstimateResult, { CustomerEstimate } from "@/components/EstimateResult";
 
 interface QuoteModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export default function QuoteModal({ isOpen, onClose, sourcePage = "Modal" }: Qu
   const [photos, setPhotos] = useState<File[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [estimate, setEstimate] = useState<CustomerEstimate | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -91,6 +93,8 @@ export default function QuoteModal({ isOpen, onClose, sourcePage = "Modal" }: Qu
         body: submitData,
       });
       if (!res.ok) throw new Error("Something went wrong. Please try again.");
+      const json = await res.json().catch(() => null);
+      setEstimate(json?.estimate ?? null);
       setStatus("success");
       setFormData({ name: "", email: "", phone: "", serviceInterest: "", projectDescription: "" });
       setPhotos([]);
@@ -128,6 +132,7 @@ export default function QuoteModal({ isOpen, onClose, sourcePage = "Modal" }: Qu
             </div>
             <h3 className="font-serif text-2xl font-bold text-navy">Thank You!</h3>
             <p className="mt-2 text-gray-600">We&rsquo;ve received your consultation request and will be in touch within 24 hours.</p>
+            {estimate && <EstimateResult estimate={estimate} variant="light" />}
             <button type="button" onClick={onClose} className="mt-6 rounded-full bg-gold px-6 py-2.5 font-semibold text-deep-black transition-colors hover:bg-gold-soft">
               Close
             </button>
